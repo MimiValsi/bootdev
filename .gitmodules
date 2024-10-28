@@ -1,0 +1,3 @@
+[submodule "webflyx"]
+	path = webflyx
+	url = git@github.com:MimiValsi/bootdev.git
