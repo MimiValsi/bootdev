@@ -1,20 +1,52 @@
 #include "exercise.h"
+#include <iterator>
+#include <stdbool.h>
+#include <stddef.h>
 
-void snek_zero_out(void *ptr, snek_object_kind_t kind) {
+// void snek_zero_out(void *ptr, snek_object_kind_t kind) {
+//
+//         // need to cast to the right struct depending the kind variable
+//         switch (kind) {
+//         case INTEGER:
+//                 ((snek_int_t *)ptr)->value = 0;
+//                 break;
+//         case FLOAT:
+//                 ((snek_float_t *)ptr)->value = 0.0;
+//                 break;
+//         case BOOL:
+//                 ((snek_bool_t *)ptr)->value = 0;
+//         }
+// }
 
-        // need to cast to the right struct depending the kind variable
-        switch (kind) {
-        case INTEGER:
-                ((snek_int_t *)ptr)->value = 0;
-                break;
-        case FLOAT:
-                ((snek_float_t *)ptr)->value = 0.0;
-                break;
-        case BOOL:
-                ((snek_bool_t *)ptr)->value = 0;
+bool snek_array_set(snek_object_t *snek_obj, size_t index,
+                    snek_object_t *value) {
+        // ?
+        if (!snek_obj || !value) {
+                return false;
         }
+        if (snek_obj->kind != ARRAY) {
+                return false;
+        }
+        if (index > snek_obj->data.v_array.size) {
+                return false;
+        }
+        snek_obj->data.v_array.elements[index] = value;
+
+        return true;
 }
 
+snek_object_t *snek_array_get(snek_object_t *snek_obj, size_t index) {
+        if (!snek_obj) {
+                return NULL;
+        }
+        if (snek_obj->kind != ARRAY) {
+                return NULL;
+        }
+        if (index >= snek_obj->data.v_array.size) {
+                return NULL;
+        }
+        return snek_obj->data.v_array.elements[index];
+}
 // void format_object(snek_object_t obj, char *buffer) {
 //         // ?
 //         switch (obj.kind) {
