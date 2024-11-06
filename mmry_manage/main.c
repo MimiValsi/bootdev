@@ -1,17 +1,44 @@
 #include "exercise.h"
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main(void) {
-        // snek_int_t integer;
-        // integer.value = 42;
-        // snek_zero_out(&integer, INTEGER);
-        int a = 1;
-        int b = 2;
-        printf("a: %d\n", a);
-        printf("b: %d\n", b);
-        int tmp = a;
-        a = b;
-        b = tmp;
-        printf("a: %d\n", a);
-        printf("b: %d\n", b);
+void swap(int *a, int *b);
+void swap_s(char **a, char **b);
+void swap_g(void *vp1, void *vp2, size_t size);
+
+int main(void) {}
+
+stack_t *stack_new(size_t capacity) {
+        stack_t *stack = malloc(capacity);
+        if (!stack) {
+                return NULL;
+        }
+        stack->count = 0;
+        stack->capacity = capacity;
+        stack->data = malloc(capacity * sizeof(void *));
+}
+
+void swap_g(void *vp1, void *vp2, size_t size) {
+        void *tmp = malloc(size * sizeof(void *));
+        if (!tmp) {
+                return;
+        }
+
+        memcpy(tmp, vp2, size);
+        memcpy(vp2, vp1, size);
+        memcpy(vp1, tmp, size);
+}
+
+void swap_s(char **a, char **b) {
+        char *tmp = *a;
+        *a = *b;
+        *b = tmp;
+}
+
+void swap(int *a, int *b) {
+        int tmp = *a;
+        *a = *b;
+        b = &tmp;
 }

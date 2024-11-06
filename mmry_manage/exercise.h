@@ -1,9 +1,17 @@
+#include <stddef.h>
+
 typedef enum SnekObjectKind {
         INTEGER,
         // STRING,
         FLOAT,
         BOOL,
 } snek_object_kind_t;
+
+typedef struct Stack {
+        size_t count;
+        size_t capacity;
+        void **data;
+} stack_t;
 
 typedef struct SnekInt {
         char *name;
