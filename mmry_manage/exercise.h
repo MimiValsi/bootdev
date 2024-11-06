@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -9,6 +10,10 @@ typedef struct SnekVector {
         snek_object_t *z;
 } snek_vector_t;
 
+=======
+#include <stddef.h>
+
+>>>>>>> 84524d623211a705e578a3e72876f2d4034e9991
 typedef enum SnekObjectKind {
         INTEGER,
         STRING,
@@ -18,10 +23,18 @@ typedef enum SnekObjectKind {
         ARRAY,
 } snek_object_kind_t;
 
+<<<<<<< HEAD
 typedef struct {
         size_t size;
         snek_object_t **elements;
 } snek_array_t;
+=======
+typedef struct Stack {
+        size_t count;
+        size_t capacity;
+        void **data;
+} stack_t;
+>>>>>>> 84524d623211a705e578a3e72876f2d4034e9991
 
 typedef struct SnekInt {
         char *name;
