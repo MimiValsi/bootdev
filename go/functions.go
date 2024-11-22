@@ -89,3 +89,30 @@ func calculateDiscountRate(messagesSent int) float64 {
 func calculateBaseBill(costPerMessage float64, messagesSent int) float64 {
 	return costPerMessage * float64(messagesSent)
 }
+
+type sms struct {
+	id      string
+	content string
+	tags    []string
+}
+
+func tagMessages(messages []sms, tagger func(sms) []string) []sms {
+	// fmt.Println("======================")
+	for _, msg := range messages {
+		msg.tags = make([]string, 1)
+		msg.tags = tagger(msg)
+		// fmt.Println(i, msg.tags)
+	}
+	// fmt.Println("======================")
+	return messages
+}
+
+func tagger(msg sms) []string {
+	tags := []string{}
+	// fmt.Println("======================")
+	for _, c := range msg.content {
+		fmt.Println(c)
+	}
+	// fmt.Println("======================")
+	return tags
+}
