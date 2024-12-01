@@ -73,3 +73,51 @@ func filterMessages(messages []Message, filterType string) []Message {
 	}
 	return filtered
 }
+
+type sms struct {
+	id      string
+	content string
+	tags    []string
+}
+
+func tagMessages(messages []sms, tagger func(sms) []string) []sms {
+	// fmt.Println("======================")
+	for _, msg := range messages {
+		msg.tags = make([]string, 1)
+		msg.tags = tagger(msg)
+		// fmt.Println(i, msg.tags)
+	}
+	// fmt.Println("======================")
+	return messages
+}
+
+func tagger(msg sms) []string {
+	tags := []string{}
+	// fmt.Println("======================")
+	for _, c := range msg.content {
+		fmt.Println(c)
+	}
+	// fmt.Println("======================")
+	return tags
+}
+func getLogger(formatter func(string, string) string) func(string, string) {
+	return func(first, second string) {
+		fmt.Println(formatter(first, second))
+	}
+}
+
+func test(first string, errors []error, formatter func(string, string) string) {
+	defer fmt.Println("====================================")
+	logger := getLogger(formatter)
+	fmt.Println("Logs:")
+	for _, err := range errors {
+		logger(first, err.Error())
+	}
+}
+
+func colonDelimit(first, second string) string {
+	return first + ": " + second
+}
+func commaDelimit(first, second string) string {
+	return first + ", " + second
+}
