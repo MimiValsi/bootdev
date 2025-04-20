@@ -33,6 +33,14 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
 func main() {
 
 	// little package that reads from .env file inside project root folder
@@ -70,8 +78,8 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidation)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirps)
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
