@@ -51,8 +51,8 @@ func main() {
 		log.Fatalf("Error opening database: %s", err)
 	}
 
-	dev := os.Getenv("PLATFORM")
-	if dev == "" {
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
 		log.Fatal("PLARFORM must be set")
 	}
 
@@ -61,7 +61,7 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
-		platform:       dev,
+		platform:       platform,
 	}
 
 	mux := http.NewServeMux()
@@ -71,7 +71,7 @@ func main() {
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidation)
-	mux.Handle("POST /api/users", middlewareDB(&apiCfg))
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
