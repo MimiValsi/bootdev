@@ -2,23 +2,28 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"log"
 	"mimivalsi/chirpy/internal/database"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
-	bad_words := []string{"kerfuffle", "sharbert", "fornax"}
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
 
+func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
-	}
-
-	type returnVals struct {
-		Chirp
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -29,24 +34,14 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const max_len = 140
-	if len(params.Body) > max_len {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
+	cleaned, err := validateChirp(params.Body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	// var cleaned_body string
-	body_splited := strings.Split(params.Body, " ")
-	for i := range body_splited {
-		for _, bw := range bad_words {
-			if strings.ToLower(body_splited[i]) == bw {
-				params.Body = strings.ReplaceAll(params.Body, body_splited[i], "****")
-			}
-		}
-	}
-
 	chirpParams := database.CreateChirpParams{
-		Body:   params.Body,
+		Body:   cleaned,
 		UserID: params.UserID,
 	}
 
@@ -56,13 +51,61 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, returnVals{
-		Chirp: Chirp{
-			ID:        chirp.ID,
-			CreatedAt: chirp.CreatedAt,
-			UpdatedAt: chirp.UpdatedAt,
-			Body:      chirp.Body,
-			UserID:    chirp.UserID,
-		},
-	})
+	respondWithJSON(w, http.StatusCreated, Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	},
+	)
+}
+
+func validateChirp(body string) (string, error) {
+	const max_len = 140
+	if len(body) > max_len {
+		return "", errors.New("Chirp is too long")
+	}
+
+	badWords := []string{"kerfuffle", "sharbert", "fornax"}
+	cleaned := getCleanedBody(body, badWords)
+
+	return cleaned, nil
+}
+
+func getCleanedBody(body string, badWords []string) string {
+	body_splited := strings.Split(body, " ")
+	for i := range body_splited {
+		for _, bw := range badWords {
+			if strings.ToLower(body_splited[i]) == bw {
+				body = strings.ReplaceAll(body, body_splited[i], "****")
+			}
+		}
+	}
+
+	return body
+}
+
+func (cfg *apiConfig) handlerFetchAllChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.FetchAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps", err)
+		return
+	}
+
+	js, err := json.Marshal(chirps)
+	if err != nil {
+		log.Fatalf("Couldn't marshal json: %s", err)
+		return
+	}
+
+	chirp := []Chirp{}
+	err = json.Unmarshal(js, &chirp)
+	if err != nil {
+		log.Fatalf("Couldn't unmarshal json: %s", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, chirp)
+
 }
