@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"mimivalsi/chirpy/internal/database"
 	"net/http"
 	"strings"
@@ -87,25 +86,23 @@ func getCleanedBody(body string, badWords []string) string {
 }
 
 func (cfg *apiConfig) handlerFetchAllChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.FetchAllChirps(r.Context())
+	dbChirps, err := cfg.db.FetchAllChirps(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps", err)
 		return
 	}
 
-	js, err := json.Marshal(chirps)
-	if err != nil {
-		log.Fatalf("Couldn't marshal json: %s", err)
-		return
+	chirps := []Chirp{}
+	for _, dbChirp := range dbChirps {
+		chirps = append(chirps, Chirp{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		})
 	}
 
-	chirp := []Chirp{}
-	err = json.Unmarshal(js, &chirp)
-	if err != nil {
-		log.Fatalf("Couldn't unmarshal json: %s", err)
-		return
-	}
-
-	respondWithJSON(w, http.StatusOK, chirp)
+	respondWithJSON(w, http.StatusOK, chirps)
 
 }

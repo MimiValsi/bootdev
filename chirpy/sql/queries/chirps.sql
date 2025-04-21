@@ -15,5 +15,5 @@ DELETE FROM chirps WHERE user_id = $1;
 --
 
 -- name: FetchAllChirps :many
-SELECT id, created_at, updated_at, body, user_id FROM chirps ORDER BY created_at;
+SELECT * FROM chirps ORDER BY created_at ASC;
 --
