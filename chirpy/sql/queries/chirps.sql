@@ -17,3 +17,7 @@ DELETE FROM chirps WHERE user_id = $1;
 -- name: FetchAllChirps :many
 SELECT * FROM chirps ORDER BY created_at ASC;
 --
+
+-- name: FetchSingleChirp :one
+SELECT * FROM chirps WHERE id = $1;
+--
