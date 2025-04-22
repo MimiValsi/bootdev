@@ -1,6 +1,11 @@
 package auth
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 func TestCheckPasswordHash(t *testing.T) {
 	password1 := "correctPassword123!"
@@ -55,4 +60,19 @@ func TestCheckPasswordHash(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMakeJWT(t *testing.T) {
+	userID := uuid.New()
+	tokenSecret := "secretToken"
+	timeDuration, err := time.ParseDuration("5m")
+	if err != nil {
+		t.Errorf("bad string duration: %s\n", err)
+	}
+	ss, err := MakeJWT(userID, tokenSecret, timeDuration)
+	if err != nil {
+		t.Errorf("MakeJWT error = %v\n", err)
+	}
+
+	t.Logf("ret: %v\n", ss)
 }
