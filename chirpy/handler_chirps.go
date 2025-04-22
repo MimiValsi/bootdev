@@ -109,18 +109,15 @@ func (cfg *apiConfig) handlerFetchAllChirps(w http.ResponseWriter, r *http.Reque
 
 func (cfg *apiConfig) handlerFetchChirp(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("ChirpID")
-	if id == "" {
-		return
-	}
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Couldn't parse UUID", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID", err)
 		return
 	}
 
 	dbChirp, err := cfg.db.FetchSingleChirp(r.Context(), uuid)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Couldn't fetch uuid", err)
+		respondWithError(w, http.StatusNotFound, "Couldn't get chirp", err)
 		return
 	}
 
