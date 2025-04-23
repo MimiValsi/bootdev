@@ -1,12 +1,19 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+)
+
+type TokenType string
+
+const (
+	TokenTypeAccess TokenType = "chirpy-access"
 )
 
 func HashPassword(password string) (string, error) {
@@ -23,75 +30,140 @@ func CheckPasswordHash(hash, password string) error {
 }
 
 func MakeJWT(UserID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
-	tn := time.Now().UTC()
-	exp := tn.Add(expiresIn)
+	// tn := time.Now().UTC()
+	// exp := tn.Add(expiresIn)
 
-	claims := jwt.RegisteredClaims{
-		Issuer:    "chirpy",
-		IssuedAt:  jwt.NewNumericDate(tn),
-		ExpiresAt: jwt.NewNumericDate(exp),
+	// claims := jwt.RegisteredClaims{
+	// 	Issuer:    string(TokenTypeAccess),
+	// 	IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+	// 	ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
+	// 	Subject:   UserID.String(),
+	// }
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Issuer:    string(TokenTypeAccess),
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
 		Subject:   UserID.String(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(tokenSecret))
-	if err != nil {
-		return "", err
-	}
-
-	return ss, nil
-}
-
-//	func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
-//		token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
-//			return []byte(tokenSecret), nil
-//		}, nil)
-//		if err != nil {
-//			return uuid.Nil, err
-//		}
-//
-//		if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
-//			return uuid.Parse(claims.Subject)
-//		}
-//
-//		return uuid.Nil, fmt.Errorf("invalid token claims")
-//	}
-func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
-	// Parse the token without specifying claims first
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the alg is what you expect
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(tokenSecret), nil
 	})
 
+	return token.SignedString([]byte(tokenSecret))
+}
+
+func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+	claimsStruct := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, &claimsStruct, func(token *jwt.Token) (any, error) {
+		return []byte(tokenSecret), nil
+	})
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	// Check if token is valid
-	if !token.Valid {
-		return uuid.Nil, fmt.Errorf("invalid token")
-	}
-
-	// Extract the claims manually as a map
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return uuid.Nil, fmt.Errorf("invalid token claims")
-	}
-
-	// Get the subject from the map
-	sub, ok := claims["sub"].(string)
-	if !ok {
-		return uuid.Nil, fmt.Errorf("invalid subject claim")
-	}
-
-	// Parse the UUID
-	id, err := uuid.Parse(sub)
+	userIDString, err := token.Claims.GetSubject()
 	if err != nil {
 		return uuid.Nil, err
+	}
+
+	issuer, err := token.Claims.GetIssuer()
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if issuer != string(TokenTypeAccess) {
+		return uuid.Nil, errors.New("invalid issuer")
+	}
+
+	id, err := uuid.Parse(userIDString)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	return id, nil
 }
+
+// func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+// 	// Parse the token without specifying claims first
+// 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 		// Validate the alg is what you expect
+// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+// 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+// 		}
+// 		return []byte(tokenSecret), nil
+// 	})
+//
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+//
+// 	// Check if token is valid
+// 	if !token.Valid {
+// 		return uuid.Nil, fmt.Errorf("invalid token")
+// 	}
+//
+// 	// Extract the claims manually as a map
+// 	claims, ok := token.Claims.(jwt.MapClaims)
+// 	if !ok {
+// 		return uuid.Nil, fmt.Errorf("invalid token claims")
+// 	}
+//
+// 	// Get the subject from the map
+// 	sub, ok := claims["sub"].(string)
+// 	if !ok {
+// 		return uuid.Nil, fmt.Errorf("invalid subject claim")
+// 	}
+//
+// 	// Parse the UUID
+// 	id, err := uuid.Parse(sub)
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+//
+// 	return id, nil
+// }
+
+// func MakeJWT(
+// 	userID uuid.UUID,
+// 	tokenSecret string,
+// 	expiresIn time.Duration,
+// ) (string, error) {
+// 	signingKey := []byte(tokenSecret)
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+// 		Issuer:    string(TokenTypeAccess),
+// 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+// 		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
+// 		Subject:   userID.String(),
+// 	})
+// 	return token.SignedString(signingKey)
+// }
+//
+// // ValidateJWT -
+// func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+// 	claimsStruct := jwt.RegisteredClaims{}
+// 	token, err := jwt.ParseWithClaims(
+// 		tokenString,
+// 		&claimsStruct,
+// 		func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
+// 	)
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+//
+// 	userIDString, err := token.Claims.GetSubject()
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+//
+// 	issuer, err := token.Claims.GetIssuer()
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+// 	if issuer != string(TokenTypeAccess) {
+// 		return uuid.Nil, errors.New("invalid issuer")
+// 	}
+//
+// 	id, err := uuid.Parse(userIDString)
+// 	if err != nil {
+// 		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
+// 	}
+// 	return id, nil
+// }
