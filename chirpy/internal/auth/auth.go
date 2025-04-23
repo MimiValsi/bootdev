@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,18 +41,57 @@ func MakeJWT(UserID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 
 	return ss, nil
 }
+
+//	func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+//		token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
+//			return []byte(tokenSecret), nil
+//		}, nil)
+//		if err != nil {
+//			return uuid.Nil, err
+//		}
+//
+//		if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
+//			return uuid.Parse(claims.Subject)
+//		}
+//
+//		return uuid.Nil, fmt.Errorf("invalid token claims")
+//	}
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
+	// Parse the token without specifying claims first
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Validate the alg is what you expect
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(tokenSecret), nil
-	}, nil)
+	})
+
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	nt, err := token.Claims.GetSubject()
+	// Check if token is valid
+	if !token.Valid {
+		return uuid.Nil, fmt.Errorf("invalid token")
+	}
+
+	// Extract the claims manually as a map
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return uuid.Nil, fmt.Errorf("invalid token claims")
+	}
+
+	// Get the subject from the map
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		return uuid.Nil, fmt.Errorf("invalid subject claim")
+	}
+
+	// Parse the UUID
+	id, err := uuid.Parse(sub)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	return uuid.MustParse(nt), nil
+	return id, nil
 }

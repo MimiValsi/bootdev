@@ -64,15 +64,24 @@ func TestCheckPasswordHash(t *testing.T) {
 
 func TestMakeJWT(t *testing.T) {
 	userID := uuid.New()
+
 	tokenSecret := "secretToken"
-	timeDuration, err := time.ParseDuration("5m")
+
+	expiresIn := time.Hour * 24
+
+	tokenString, err := MakeJWT(userID, tokenSecret, expiresIn)
 	if err != nil {
-		t.Errorf("bad string duration: %s\n", err)
-	}
-	ss, err := MakeJWT(userID, tokenSecret, timeDuration)
-	if err != nil {
-		t.Errorf("MakeJWT error = %v\n", err)
+		t.Errorf("Expected no error, got %v", err)
 	}
 
-	t.Logf("ret: %v\n", ss)
+	if tokenString == "" {
+		t.Errorf("Expected non-empty token string")
+	}
+
+	_, err = ValidateJWT(tokenString, tokenSecret)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// t.Errorf("dat: %v", dat)
 }
