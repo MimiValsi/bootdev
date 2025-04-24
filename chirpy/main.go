@@ -22,6 +22,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	token          string // optional, default and max to 1 hour
 }
 
 func main() {
@@ -37,14 +38,19 @@ func main() {
 		log.Fatal("DB_URL must be set")
 	}
 
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Fatalf("Error opening database: %s", err)
-	}
-
 	platform := os.Getenv("PLATFORM")
 	if platform == "" {
 		log.Fatal("PLARFORM must be set")
+	}
+
+	token := os.Getenv("TOKEN_STRING")
+	if token == "" {
+		log.Fatal("TOKEN_STRING must be set")
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Error opening database: %s", err)
 	}
 
 	dbQueries := database.New(db)
@@ -53,6 +59,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		platform:       platform,
+		token:          token,
 	}
 
 	mux := http.NewServeMux()
