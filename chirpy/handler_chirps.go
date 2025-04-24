@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"mimivalsi/chirpy/internal/auth"
 	"mimivalsi/chirpy/internal/database"
 	"net/http"
 	"strings"
@@ -39,12 +40,22 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirpParams := database.CreateChirpParams{
-		Body:   cleaned,
-		UserID: params.UserID,
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No token found in header", err)
+		return
 	}
 
-	chirp, err := cfg.db.CreateChirp(r.Context(), chirpParams)
+	userID, err := auth.ValidateJWT(tokenString, cfg.token)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid Token", err)
+		return
+	}
+
+	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   cleaned,
+		UserID: userID,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
 		return
@@ -56,8 +67,7 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: chirp.UpdatedAt,
 		Body:      chirp.Body,
 		UserID:    chirp.UserID,
-	},
-	)
+	})
 }
 
 func validateChirp(body string) (string, error) {
