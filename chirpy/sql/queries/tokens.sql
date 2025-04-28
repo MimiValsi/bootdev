@@ -11,13 +11,13 @@ VALUES (
 RETURNING *;
 --
 
--- name: CheckToken :one
+-- name: GetUserFromRefreshToken :one
 SELECT * FROM refresh_tokens
-WHERE user_id = $1;
+WHERE token = $1;
 --
 
 -- name: RevokeToken :exec
 UPDATE refresh_tokens
 SET updated_at = $1, revoked_at = $2
-WHERE user_id = $3;
+WHERE token = $3;
 --
