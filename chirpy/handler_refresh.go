@@ -6,8 +6,6 @@ import (
 	"mimivalsi/chirpy/internal/database"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
@@ -21,22 +19,30 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString := uuid.MustParse(bearerToken)
-
-	refreshToken, err := cfg.db.CheckToken(r.Context(), tokenString)
+	refreshToken, err := cfg.db.GetUserFromRefreshToken(r.Context(), bearerToken)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't check for refresh token", err)
 		return
 	}
 
-	// refreshToken.ExpiresAt
 	if time.Now().After(refreshToken.ExpiresAt) {
 		respondWithError(w, http.StatusUnauthorized, "Refresh token expired", err)
 		return
 	}
 
+	if refreshToken.RevokedAt.Valid {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has been revoked", nil)
+		return
+	}
+
+	newToken, err := auth.MakeJWT(refreshToken.UserID, cfg.token, time.Duration(1)*time.Hour)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create new token", err)
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, response{
-		Token: bearerToken,
+		Token: newToken,
 	})
 }
 
@@ -47,13 +53,13 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tn sql.NullTime
-	if tn.Valid {
-		tn.Time.UTC()
+	revokedAt := sql.NullTime{
+		Time:  time.Now().UTC(),
+		Valid: true,
 	}
 	err = cfg.db.RevokeToken(r.Context(), database.RevokeTokenParams{
-		UserID:    uuid.MustParse(bearerToken),
-		RevokedAt: tn,
+		Token:     bearerToken,
+		RevokedAt: revokedAt,
 		UpdatedAt: time.Now().UTC(),
 	})
 	if err != nil {
@@ -61,5 +67,5 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusNoContent, nil)
+	w.WriteHeader(http.StatusNoContent)
 }
