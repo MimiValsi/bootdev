@@ -99,7 +99,5 @@ func MakeRefreshToken() (string, error) {
 		return "", err
 	}
 
-	ret := hex.EncodeToString(key)
-
-	return string(ret), nil
+	return hex.EncodeToString(key), nil
 }
