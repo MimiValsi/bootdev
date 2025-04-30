@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -36,7 +38,11 @@ func (cfg *apiConfig) handlerPolkaWebhooks(w http.ResponseWriter, r *http.Reques
 
 	_, err = cfg.db.UpgradeUser(r.Context(), userID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Couldn't find or upgrade user", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, http.StatusNotFound, "Couldn't find user", err)
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "Couldn't update user", err)
 		return
 	}
 
