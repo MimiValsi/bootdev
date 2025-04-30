@@ -6,6 +6,7 @@ import (
 	"mimivalsi/chirpy/internal/auth"
 	"mimivalsi/chirpy/internal/database"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -124,6 +125,12 @@ func (cfg *apiConfig) handlerFetchAllChirps(w http.ResponseWriter, r *http.Reque
 			UpdatedAt: dbChirp.UpdatedAt,
 			Body:      dbChirp.Body,
 			UserID:    dbChirp.UserID,
+		})
+	}
+
+	if r.URL.Query().Get("sort") == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
 		})
 	}
 
