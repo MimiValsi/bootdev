@@ -95,10 +95,25 @@ func getCleanedBody(body string, badWords []string) string {
 }
 
 func (cfg *apiConfig) handlerFetchAllChirps(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.db.FetchAllChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps", err)
-		return
+	authorID := r.URL.Query().Get("author_id")
+
+	var dbChirps []database.Chirp
+	var err error
+
+	if authorID != "" {
+		dbChirps, err = cfg.db.FetchChirpsByUserID(r.Context(), uuid.MustParse(authorID))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps from author", err)
+			return
+		}
+
+	} else {
+		dbChirps, err = cfg.db.FetchAllChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps", err)
+			return
+		}
+
 	}
 
 	chirps := []Chirp{}
