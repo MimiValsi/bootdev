@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -104,12 +103,13 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 const upgradeUser = `-- name: UpgradeUser :one
 
 UPDATE users
-SET is_chirpy_red = $1
+SET is_chirpy_red = TRUE
+WHERE id = $1
 RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
-func (q *Queries) UpgradeUser(ctx context.Context, isChirpyRed sql.NullBool) (User, error) {
-	row := q.db.QueryRowContext(ctx, upgradeUser, isChirpyRed)
+func (q *Queries) UpgradeUser(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, upgradeUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
