@@ -86,9 +86,7 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", ErrNoAuthHeaderIncluded
 	}
 
-	token := strings.TrimPrefix(headerToken, "Bearer ")
-
-	return token, nil
+	return strings.TrimPrefix(headerToken, "Bearer "), nil
 }
 
 func MakeRefreshToken() (string, error) {
@@ -100,4 +98,13 @@ func MakeRefreshToken() (string, error) {
 	}
 
 	return hex.EncodeToString(key), nil
+}
+
+func GetAPIKey(header http.Header) (string, error) {
+	polkaToken := header.Get("Authorization")
+	if polkaToken == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
+
+	return strings.TrimPrefix(polkaToken, "ApiKey "), nil
 }
